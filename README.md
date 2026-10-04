@@ -51,6 +51,7 @@ while you adjust it, and changes apply immediately.
   of `/dump GetBuildInfo()`.
 
 GitHub Actions runs tests on every push and pull request. Any failing test fails
-the workflow.
+the workflow. Successful tag pushes also create a GitHub release with generated
+release notes after both test jobs pass.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 asybbotin.
