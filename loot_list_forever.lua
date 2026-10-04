@@ -331,6 +331,8 @@ local function initialize()
     addon.InitializeSettingsData()
     refreshFormats()
     addon.InitializeUI()
+    addon.InitializeGroupLoot()
+    addon.InitializeDungeonHistory()
     addon.InitializeMoney()
     addon.InitializeSettingsUI()
     addon.InitializeMinimap()
@@ -356,7 +358,13 @@ local function initialize()
             print("Loot List Forever: " .. lastResult)
         elseif command == "test" then
             addon.ShowPreview()
-        else print("Loot List Forever: /lootlist settings, unlock, lock, reset, test, debug, or status.") end
+        elseif command == "grouptest" then
+            addon.ShowGroupPreview()
+        elseif command == "history" then
+            addon.OpenDungeonHistory()
+        elseif command == "historytest" then
+            addon.ShowDungeonHistoryPreview()
+        else print("Loot List Forever: /lootlist settings, unlock, lock, reset, test, grouptest, history, historytest, debug, or status.") end
     end
 end
 
