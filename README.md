@@ -47,3 +47,5 @@ while you adjust it, and changes apply immediately.
 
 GitHub Actions runs tests on every push and pull request. Any failing test fails
 the workflow.
+
+Licensed under the [MIT License](LICENSE). Copyright (c) 2026 asybbotin.
