@@ -1,8 +1,8 @@
 ## Interface: 16001
-## Title: Loot List
+## Title: Loot List Forever
 ## IconTexture: Interface\Icons\INV_Misc_Bag_10
 ## Notes: Compact notifications for acquired loot. Leaves Auto Loot unchanged.
-## Author: Loot_list contributors
+## Author: Loot List Forever contributors
 ## Version: 1.4.4
 ## SavedVariables: LootListDB
 

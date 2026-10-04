@@ -13,7 +13,7 @@ local FORMAT_KEYS = { "LOOT_ITEM_SELF", "LOOT_ITEM_SELF_MULTIPLE",
 
 local function diagnostic(text)
     lastResult = text
-    if debugEnabled then print("Loot List: " .. text) end
+    if debugEnabled then print("Loot List Forever: " .. text) end
 end
 local batchScheduled, retryScheduled, initialized
 local MAX_PENDING, MAX_ATTEMPTS = 48, 10
@@ -153,7 +153,7 @@ local function resolve(record)
     end
     if quality ~= nil and record.previewQuality and quality ~= record.previewQuality then
         if previewFallback(record) then return resolve(record) end
-        print("Loot List: preview item " .. record.itemID .. " does not match its expected rarity; skipped.")
+        print("Loot List Forever: preview item " .. record.itemID .. " does not match its expected rarity; skipped.")
         return true
     end
     if quality ~= nil and not addon.IsQualityEnabled(quality) then
@@ -210,7 +210,7 @@ scheduleRetry = function()
                 stats.expired = stats.expired + 1
                 diagnostic("Dropped item " .. record.itemID .. ": " .. (record.waitReason or "unavailable metadata") .. ".")
                 if record.isPreview then
-                    print("Loot List: preview metadata unavailable for item " .. record.itemID .. "; skipped.")
+                    print("Loot List Forever: preview metadata unavailable for item " .. record.itemID .. "; skipped.")
                 end
                 table.remove(pending, i)
             elseif requestItem then
@@ -280,9 +280,9 @@ function addon.ShowPreview()
             disabled[#disabled + 1] = _G["ITEM_QUALITY" .. sample[2] .. "_DESC"] or tostring(sample[2])
         end
     end
-    if #disabled > 0 then print("Loot List: preview excludes unchecked rarities: " .. table.concat(disabled, ", ") .. ".") end
+    if #disabled > 0 then print("Loot List Forever: preview excludes unchecked rarities: " .. table.concat(disabled, ", ") .. ".") end
     if #samples == 0 then
-        print("Loot List: enable at least one item rarity to preview the list.")
+        print("Loot List Forever: enable at least one item rarity to preview the list.")
     else
         table.sort(samples, function(a, b) return a[2] > b[2] end)
         diagnostic("Showing sample-item rarity previews.")
@@ -322,7 +322,7 @@ end
 local function initialize()
     if initialized then return end
     if not C_Timer or not C_Timer.After or not getItemInfo then
-        print("Loot List: required item/timer APIs are unavailable on this client.")
+        print("Loot List Forever: required item/timer APIs are unavailable on this client.")
         return
     end
     initialized = true
@@ -349,14 +349,14 @@ local function initialize()
         elseif command == "reset" then addon.ResetPosition()
         elseif command == "debug" then
             debugEnabled = not debugEnabled
-            print("Loot List: debug " .. (debugEnabled and "on" or "off") .. ".")
+            print("Loot List Forever: debug " .. (debugEnabled and "on" or "off") .. ".")
         elseif command == "status" then
-            print(string.format("Loot List: events=%d parsed=%d displayed=%d gray=%d pending=%d expired=%d formats=%d money=%d filtered=%d",
+            print(string.format("Loot List Forever: events=%d parsed=%d displayed=%d gray=%d pending=%d expired=%d formats=%d money=%d filtered=%d",
                 stats.events, stats.parsed, stats.displayed, stats.poor, #pending, stats.expired, #patterns, stats.money, stats.filtered))
-            print("Loot List: " .. lastResult)
+            print("Loot List Forever: " .. lastResult)
         elseif command == "test" then
             addon.ShowPreview()
-        else print("Loot List: /lootlist settings, unlock, lock, reset, test, debug, or status.") end
+        else print("Loot List Forever: /lootlist settings, unlock, lock, reset, test, debug, or status.") end
     end
 end
 
@@ -380,7 +380,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
         end
         if debugEnabled and public(message) and type(message) == "string" then
             -- Escape markup so diagnostics show actual hyperlink syntax.
-            print("Loot List raw: " .. message:gsub("|", "||"))
+            print("Loot List Forever raw: " .. message:gsub("|", "||"))
         end
     elseif event == "CHAT_MSG_MONEY" then
         stats.events = stats.events + 1
@@ -396,7 +396,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
             diagnostic("Money event has restricted text or an unrecognized amount.")
         end
         if debugEnabled and public(message) and type(message) == "string" then
-            print("Loot List raw money: " .. message:gsub("|", "||"))
+            print("Loot List Forever raw money: " .. message:gsub("|", "||"))
         end
     elseif event == "GET_ITEM_INFO_RECEIVED" or event == "ITEM_DATA_LOAD_RESULT" then
         local itemID, success = ...
