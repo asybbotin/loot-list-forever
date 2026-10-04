@@ -1,0 +1,29 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Local editor and agent configuration
+.idea/
+.vscode/
+.codex/
+.agents/
+.aws/
+*.swp
+*.swo
+*~
+
+# Local environment files (keep a shareable example)
+.env
+.env.*
+!.env.example
+
+# Generated Lua bytecode, logs, and release packages
+*.luac
+luac.out
+*.log
+/dist/
+/build/
+*.zip
+
+# Copied game state; addon source files remain tracked
+/SavedVariables/

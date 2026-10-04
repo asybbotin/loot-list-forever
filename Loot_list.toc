@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: Loot List
+## IconTexture: Interface\Icons\INV_Misc_Bag_10
+## Notes: Compact notifications for acquired loot. Leaves Auto Loot unchanged.
+## Author: Loot_list contributors
+## Version: 1.4.4
+## SavedVariables: LootListDB
+
+loot_list_ui.lua
+loot_list_settings.lua
+loot_list_money.lua
+loot_list.lua
