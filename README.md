@@ -9,13 +9,18 @@ Fully vibe-coded. The loot is real; the engineering runs on vibes (and tests).
 
 ## Install and use
 
-1. Place this repository in `Interface/AddOns/Loot_list` inside your WoW: Forever
-   client folder. `Loot_list.toc` must be directly inside `Loot_list`.
+1. Place this repository in `Interface/AddOns/loot_list_forever` inside your WoW: Forever
+   client folder. `loot_list_forever.toc` must be directly inside `loot_list_forever`.
 2. Enable **Loot List Forever** on the AddOns screen.
 3. Click the loot-bag minimap button or type `/lootlist` to open settings.
    A sample list appears automatically. Choose item rarities, duration, and opacity,
    or drag the handles to move and resize the list.
 4. Click **Done** or press Escape. Your settings are saved between sessions.
+
+Upgrading from the old `Loot_list` folder? Close the game and rename that folder
+to `loot_list_forever`. To retain existing settings, back up your account's
+`WTF/Account/<account>/SavedVariables/Loot_list.lua` and copy it as
+`loot_list_forever.lua` in the same SavedVariables directory before restarting.
 
 Hover an item to keep it in place and show its tooltip. Shift-click to insert its
 link into chat. Type `/lootlist help` for additional commands.

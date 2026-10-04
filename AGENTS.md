@@ -10,9 +10,9 @@ Respect protected actions, combat lockdown, and secret/restricted values. Do not
 
 ## Project Structure & Loading
 
-`loot_list.lua` handles events, item parsing and metadata; `loot_list_money.lua` parses localized money loot; `loot_list_ui.lua` manages pooled notifications; `loot_list_settings.lua` owns saved filters/duration, the settings panel, and the minimap button. `Loot_list.toc` loads UI, settings, and money parsing before core logic. `tests/run.lua` contains API-mocked regression tests; `README.md` documents usage and in-game checks. Keep the addon display-only; never call looting APIs or alter Auto Loot.
+`loot_list_forever.lua` handles events, item parsing and metadata; `loot_list_forever_money.lua` parses localized money loot; `loot_list_forever_ui.lua` manages pooled notifications; `loot_list_forever_settings.lua` owns saved filters/duration, the settings panel, and the minimap button. `loot_list_forever.toc` loads UI, settings, and money parsing before core logic. `tests/run.lua` contains API-mocked regression tests; `README.md` documents usage and in-game checks. Keep the addon display-only; never call looting APIs or alter Auto Loot.
 
-Maintain `Loot_list.toc` with a verified `## Interface` value, metadata, and explicit file load order. Declare persisted globals with `## SavedVariables` or `## SavedVariablesPerCharacter`. Initialize addon data on its own `ADDON_LOADED` event; wait for appropriate player/world events for gameplay state.
+Maintain `loot_list_forever.toc` with a verified `## Interface` value, metadata, and explicit file load order. Declare persisted globals with `## SavedVariables` or `## SavedVariablesPerCharacter`. Initialize addon data on its own `ADDON_LOADED` event; wait for appropriate player/world events for gameplay state.
 
 ## Lua Style & Runtime Behavior
 
@@ -24,7 +24,7 @@ Use Lua syntax supported by the client. Prefer event-driven updates over continu
 
 No build system or linter is configured. Run `luajit tests/run.lua` (or `lua5.1 tests/run.lua`) from the addon directory for mocked regression tests. These do not prove in-game compatibility.
 
-- `luac -p loot_list.lua`: syntax check when a compatible compiler is installed; cannot validate WoW APIs.
+- `luac -p loot_list_forever.lua`: syntax check when a compatible compiler is installed; cannot validate WoW APIs.
 - `/console scriptErrors 1`: enable in-game error reporting.
 - `/reload`: reload addon changes; verify manifest changes after restarting the client if needed.
 

@@ -133,10 +133,10 @@ local function setup(options)
         end,
     }
     local addon = {}
-    assert(loadfile("loot_list_ui.lua"))("Loot_list", addon)
-    assert(loadfile("loot_list_settings.lua"))("Loot_list", addon)
-    assert(loadfile("loot_list_money.lua"))("Loot_list", addon)
-    assert(loadfile("loot_list.lua"))("Loot_list", addon)
+    assert(loadfile("loot_list_forever_ui.lua"))("loot_list_forever", addon)
+    assert(loadfile("loot_list_forever_settings.lua"))("loot_list_forever", addon)
+    assert(loadfile("loot_list_forever_money.lua"))("loot_list_forever", addon)
+    assert(loadfile("loot_list_forever.lua"))("loot_list_forever", addon)
     local show = addon.ShowItem
     addon.ShowItem = function(item) displayed[#displayed + 1] = item; show(item) end
     local eventFrame
@@ -144,7 +144,7 @@ local function setup(options)
         if frame.events.ADDON_LOADED then eventFrame = frame end
     end
     local function event(name, ...) eventFrame.scripts.OnEvent(eventFrame, name, ...) end
-    event("ADDON_LOADED", "Loot_list")
+    event("ADDON_LOADED", "loot_list_forever")
     local function update(delta)
         for _, frame in ipairs(frames) do
             if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, delta) end

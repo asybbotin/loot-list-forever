@@ -3,10 +3,10 @@
 ## IconTexture: Interface\Icons\INV_Misc_Bag_10
 ## Notes: Compact notifications for acquired loot. Leaves Auto Loot unchanged.
 ## Author: Loot List Forever contributors
-## Version: 1.4.4
+## Version: 1.4.5
 ## SavedVariables: LootListDB
 
-loot_list_ui.lua
-loot_list_settings.lua
-loot_list_money.lua
-loot_list.lua
+loot_list_forever_ui.lua
+loot_list_forever_settings.lua
+loot_list_forever_money.lua
+loot_list_forever.lua
