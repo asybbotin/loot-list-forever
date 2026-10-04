@@ -1,6 +1,6 @@
 local _, addon = ...
 addon.ICON = "Interface\\Icons\\INV_Misc_Bag_10"
-local panel, durationSlider, durationLabel, opacitySlider, opacityLabel
+local panel, durationSlider, durationLabel, opacitySlider, opacityLabel, groupCheck
 local checks = {}
 local MIN_DURATION, MAX_DURATION, DEFAULT_DURATION = 1, 30, 5
 local MIN_OPACITY, MAX_OPACITY, DEFAULT_OPACITY = 10, 100, 100
@@ -13,6 +13,7 @@ local function normalizeNumber(value, minimum, maximum, default)
 end
 
 function addon.InitializeSettingsData()
+    if type(LootListDB.groupEnabled) ~= "boolean" then LootListDB.groupEnabled = true end
     LootListDB.duration = normalizeNumber(LootListDB.duration, MIN_DURATION, MAX_DURATION, DEFAULT_DURATION)
     LootListDB.opacity = normalizeNumber(LootListDB.opacity, MIN_OPACITY, MAX_OPACITY, DEFAULT_OPACITY)
     if type(LootListDB.qualities) ~= "table" then LootListDB.qualities = {} end
@@ -25,6 +26,16 @@ function addon.InitializeSettingsData()
     local angle = LootListDB.minimapAngle
     if type(angle) ~= "number" or angle ~= angle or math.abs(angle) == math.huge then angle = 225 end
     LootListDB.minimapAngle = angle % 360
+end
+
+function addon.IsGroupLootEnabled()
+    return LootListDB.groupEnabled
+end
+
+function addon.SetGroupLootEnabled(enabled)
+    LootListDB.groupEnabled = not not enabled
+    if groupCheck then groupCheck:SetChecked(LootListDB.groupEnabled) end
+    addon.ApplyGroupLootEnabled()
 end
 
 function addon.GetDuration()
@@ -90,7 +101,7 @@ end
 
 function addon.InitializeSettingsUI()
     panel = CreateFrame("Frame", "LootListSettingsPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    panel:SetSize(360, 445)
+    panel:SetSize(360, 500)
     panel:SetPoint("CENTER")
     panel:SetFrameStrata("DIALOG")
     panel:SetMovable(true)
@@ -128,6 +139,13 @@ function addon.InitializeSettingsUI()
     opacitySlider = createSlider("LootListOpacitySlider", -353, MIN_OPACITY, MAX_OPACITY,
         "10%", "100%", LootListDB.opacity, addon.SetOpacity)
     addon.SetOpacity(LootListDB.opacity)
+    groupCheck = CreateFrame("CheckButton", "LootListGroupEnabledCheck", panel, "UICheckButtonTemplate")
+    groupCheck:SetSize(26, 26)
+    groupCheck:SetPoint("TOPLEFT", 22, -390)
+    groupCheck:SetChecked(addon.IsGroupLootEnabled())
+    label(groupCheck, "Enable group loot", 30, -5)
+    label(panel, "Show group rolls, results, animations and sounds.", 24, -423, "GameFontHighlightSmall")
+    groupCheck:SetScript("OnClick", function(self) addon.SetGroupLootEnabled(self:GetChecked()) end)
     local done = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     done:SetSize(100, 24)
     done:SetPoint("BOTTOMRIGHT", -24, 23)

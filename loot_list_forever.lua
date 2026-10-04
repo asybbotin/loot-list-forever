@@ -331,6 +331,7 @@ local function initialize()
     addon.InitializeSettingsData()
     refreshFormats()
     addon.InitializeUI()
+    addon.InitializeGroupLoot()
     addon.InitializeMoney()
     addon.InitializeSettingsUI()
     addon.InitializeMinimap()
@@ -356,7 +357,9 @@ local function initialize()
             print("Loot List Forever: " .. lastResult)
         elseif command == "test" then
             addon.ShowPreview()
-        else print("Loot List Forever: /lootlist settings, unlock, lock, reset, test, debug, or status.") end
+        elseif command == "grouptest" then
+            addon.ShowGroupPreview()
+        else print("Loot List Forever: /lootlist settings, unlock, lock, reset, test, grouptest, debug, or status.") end
     end
 end
 

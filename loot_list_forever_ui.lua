@@ -186,6 +186,7 @@ end
 
 function addon.InitializeUI()
     anchor = CreateFrame("Frame", "LootListAnchor", UIParent)
+    addon.lootAnchor = anchor
     anchor:SetSize(WIDTH, LIST_HEIGHT)
     local scale = LootListDB.scale
     if type(scale) ~= "number" or scale ~= scale then scale = 1 end
