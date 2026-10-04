@@ -68,7 +68,7 @@ and optional loot-history functions are feature-detected. Verified client output
 from `/dump GetBuildInfo()`: **1.60.1, build 70205, Oct 2 2026, Interface 16001**.
 This matches the reference source. Actual in-game behavior still needs validation.
 
-History identifies drops by encounter/drop keys rather than roll IDs. Results
+For live notifications, history identifies drops by encounter/drop keys rather than roll IDs. Results
 are matched using a unique recent full item hyperlink; stale or ambiguous
 simultaneous identical drops never get an assumed winner. If no reliable result
 arrives by the full voting deadline provided by WoW plus 5 seconds, the row says
@@ -79,6 +79,37 @@ In-game checks: enable `/console scriptErrors 1`, test the sample command, hover
 tooltips, move/resize the loot list, and test during combat. In a group, verify
 eligible/ineligible choices, selecting through either list, declining and accepting
 bind-on-pickup confirmation, simultaneous rolls, expiry, cancellation, and reload.
+
+## Dungeon and raid loot history
+
+Open the scrollable history window with **`/lootlist history`**, **Loot history**
+in settings, or **right-click the minimap button**. It shows current-run group
+rolls newest first, with the item, winner's class icon and name, Need/Greed icon,
+and winning roll value. Everyone-passed items and ongoing votes appear too.
+Hover for an item tooltip or Shift-click to insert its link into chat.
+
+History starts on entering a dungeon or raid, stays available after notification
+rows disappear, and survives `/reload` within that instance. Leaving the instance
+clears the saved history and closes the window; changing instance or difficulty
+starts a new history. Disabling group loot pauses recording, while previous
+results remain readable until you leave.
+
+The window reads authoritative encounter/drop keys directly from the client's
+loot-history API, keeping simultaneous identical items distinct. It records only
+public results the client supplies and does not guess missing winners. This is
+group-roll history, so personal loot and items awarded without a group roll are
+not added. Earlier drops before the current tracked run are not imported.
+
+Run **`/lootlist historytest`** to preview the window anywhere. Samples are not
+saved and do not play sounds or submit votes. `/lootlist history` returns to the
+real run's history. Additional target-build references:
+`Blizzard_APIDocumentationGenerated/InstanceDocumentation.lua` and
+`Blizzard_SharedXML/SecureScrollTemplates.xml`.
+
+In-game checks: collect dungeon/raid rolls, view completed and simultaneous
+identical drops, scroll a long list, inspect tooltips, and open the window in
+combat. Reload inside the instance and verify results remain; leave and verify
+the window closes and history clears. Enter another instance to check a fresh run.
 
 ## Settings
 

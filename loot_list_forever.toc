@@ -10,4 +10,5 @@ loot_list_forever_ui.lua
 loot_list_forever_settings.lua
 loot_list_forever_money.lua
 loot_list_forever_group.lua
+loot_list_forever_history.lua
 loot_list_forever.lua

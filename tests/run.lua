@@ -94,6 +94,9 @@ local function setup(options)
     function methods:SetTexture(value) self.texture = value end
     function methods:SetAlpha(value) self.alpha = value end
     function methods:Show() self.shown = true end
+    function methods:IsShown() return self.shown == true end
+    function methods:SetScrollChild(child) self.scrollChild = child end
+    function methods:SetVerticalScroll(value) self.verticalScroll = value end
     function methods:Hide()
         local wasShown = self.shown
         self.shown = false
@@ -158,6 +161,12 @@ local function setup(options)
         return rolls[id] and math.max(0, (rolls[id].expires - now) * 1000) or 0
     end
     RollOnLoot = function(id, choice) selections[#selections + 1] = { id, choice } end
+    local instance = options.instance
+    IsInInstance = function() return instance ~= nil, instance and instance.kind or "none" end
+    GetInstanceInfo = function()
+        return instance and instance.name or "Outside", instance and instance.kind or "none",
+            instance and instance.difficulty or 1, "Normal", 5, 0, false, instance and instance.id or 0
+    end
     local history = {}
     C_LootHistory = not options.noHistory and {
         GetAllEncounterInfos = function() return { { encounterID = 100 } } end,
@@ -168,6 +177,7 @@ local function setup(options)
     assert(loadfile("loot_list_forever_settings.lua"))("loot_list_forever", addon)
     assert(loadfile("loot_list_forever_money.lua"))("loot_list_forever", addon)
     assert(loadfile("loot_list_forever_group.lua"))("loot_list_forever", addon)
+    assert(loadfile("loot_list_forever_history.lua"))("loot_list_forever", addon)
     assert(loadfile("loot_list_forever.lua"))("loot_list_forever", addon)
     local show = addon.ShowItem
     addon.ShowItem = function(item) displayed[#displayed + 1] = item; show(item) end
@@ -215,6 +225,14 @@ local function setup(options)
     end
     return { addon = addon, event = event, advance = advance, data = data, ready = ready,
         displayed = displayed, rows = rows, frames = frames, rolls = rolls, selections = selections, history = history, sounds = sounds,
+        setInstance = function(value) instance = value end,
+        historyRows = function()
+            local result = {}
+            for _, frame in ipairs(frames) do
+                if frame.historyEntry and frame.shown then result[#result + 1] = frame end
+            end
+            return result
+        end,
         groupRows = function()
             local result = {}
             for _, frame in ipairs(frames) do
@@ -1302,6 +1320,110 @@ test("group result timeout is anchored to roll start and includes the five-secon
     assert(row.details.text:find("awaiting result", 1, true))
     s.advance(4.75); assert(not row.roll.result)
     s.advance(0.5); equal(row.resultText.text, "Roll ended • result unavailable")
+end)
+
+test("dungeon history records distinct identical drops, updates results and survives reload", function()
+    local instance = { id = 36, kind = "party", name = "The Deadmines", difficulty = 1 }
+    local s = setup({ instance = instance })
+    s.event("PLAYER_ENTERING_WORLD")
+    equal(LootListDB.groupHistory.instanceID, 36)
+    s.history[1] = { lootListKey = 901, itemHyperlink = link(2), startTime = 1000,
+        rollInfos = { { state = 0 }, { state = 4 } } }
+    s.history[2] = { lootListKey = 902, itemHyperlink = link(2), startTime = 1001, allPassed = true }
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 901)
+    equal(#LootListDB.groupHistory.entries, 2)
+    SlashCmdList.LOOTLIST("history")
+    equal(#s.historyRows(), 2)
+    equal(s.historyRows()[1].resultText.text, "Everyone passed")
+    assert(s.historyRows()[2].resultText.text:find("Voting ongoing • 1/2", 1, true))
+    s.history[1].winner = { playerName = "Dungeonwinner", playerClass = "MAGE", state = 0, roll = 95 }
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 901)
+    equal(#LootListDB.groupHistory.entries, 2)
+    local winnerRow = s.historyRows()[2]
+    assert(winnerRow.resultText.text:find("Dungeonwinner", 1, true))
+    assert(winnerRow.resultText.text:find("Need • Roll 95", 1, true))
+    winnerRow.scripts.OnEnter(winnerRow); equal(GameTooltip.link, link(2))
+    winnerRow.scripts.OnClick(winnerRow); equal(s.inserted(), link(2))
+    winnerRow.scripts.OnLeave(winnerRow); assert(not GameTooltip.shown)
+    s.advance(90); equal(#LootListDB.groupHistory.entries, 2)
+    local nextSession = setup({ instance = instance, db = LootListDB })
+    nextSession.event("PLAYER_ENTERING_WORLD")
+    SlashCmdList.LOOTLIST("history")
+    equal(#nextSession.historyRows(), 2)
+    assert(nextSession.historyRows()[2].resultText.text:find("Dungeonwinner", 1, true))
+end)
+
+test("instance history clears on exit and on switching dungeon or raid", function()
+    local s = setup({ instance = { id = 36, kind = "party", name = "Dungeon", difficulty = 1 } })
+    s.event("PLAYER_ENTERING_WORLD")
+    s.history[1] = { lootListKey = 910, itemHyperlink = link(2), startTime = 1000, allPassed = true }
+    s.event("LOOT_HISTORY_UPDATE_ENCOUNTER", 100)
+    equal(#LootListDB.groupHistory.entries, 1)
+    local old = LootListDB.groupHistory
+    s.advance(5)
+    s.setInstance({ id = 409, kind = "raid", name = "Molten Core", difficulty = 1 })
+    s.event("ZONE_CHANGED_NEW_AREA")
+    assert(LootListDB.groupHistory ~= old)
+    equal(#LootListDB.groupHistory.entries, 0)
+    s.history[2] = { lootListKey = 911, itemHyperlink = link(3), startTime = 1005,
+        winner = { playerName = "Raidwinner", state = 3, roll = 89 } }
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 911)
+    equal(#LootListDB.groupHistory.entries, 1)
+    s.setInstance(nil); s.event("PLAYER_ENTERING_WORLD")
+    equal(LootListDB.groupHistory, nil)
+    equal(#s.historyRows(), 0)
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 911); equal(LootListDB.groupHistory, nil)
+end)
+
+test("history shortcuts and isolated preview work outside instances", function()
+    local s = setup()
+    s.event("PLAYER_ENTERING_WORLD")
+    local panel, minimap, button
+    for _, frame in ipairs(s.frames) do
+        if frame.name == "LootListHistoryPanel" then panel = frame end
+        if frame.name == "LootListMinimapButton" then minimap = frame end
+        if frame.name == "LootListHistoryButton" then button = frame end
+    end
+    assert(not panel.shown)
+    minimap.scripts.OnClick(minimap, "RightButton"); assert(panel.shown)
+    equal(#s.historyRows(), 0)
+    panel:Hide(); button.scripts.OnClick(button); assert(panel.shown)
+    SlashCmdList.LOOTLIST("historytest")
+    equal(#s.historyRows(), 4); equal(LootListDB.groupHistory, nil); equal(#s.sounds, 0)
+    SlashCmdList.LOOTLIST("history"); equal(#s.historyRows(), 0)
+    equal(LootListDB.groupHistory, nil)
+end)
+
+test("history ignores restricted results and disabled recording, but still cleans up", function()
+    local s = setup({ secret = "Hiddenname", instance = { id = 36, kind = "party", name = "Dungeon", difficulty = 1 } })
+    s.event("PLAYER_ENTERING_WORLD")
+    s.history[1] = { lootListKey = 920, itemHyperlink = link(2), startTime = 1000,
+        winner = { playerName = "Hiddenname", state = 0, roll = 99 } }
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 920)
+    equal(LootListDB.groupHistory.entries[1].winner, nil)
+    s.addon.SetGroupLootEnabled(false)
+    s.history[2] = { lootListKey = 921, itemHyperlink = link(3), startTime = 1000, allPassed = true }
+    s.event("LOOT_HISTORY_UPDATE_DROP", 100, 921)
+    equal(#LootListDB.groupHistory.entries, 1)
+    s.setInstance(nil); s.event("ZONE_CHANGED_NEW_AREA")
+    equal(LootListDB.groupHistory, nil)
+end)
+
+test("history renders a long list without duplicating rows on repeated updates", function()
+    local s = setup({ instance = { id = 409, kind = "raid", name = "Molten Core", difficulty = 1 } })
+    s.event("PLAYER_ENTERING_WORLD")
+    for i = 1, 35 do
+        s.history[i] = { lootListKey = 1000 + i, itemHyperlink = link(2), startTime = 1000 + i,
+            winner = { playerName = "Winner" .. i, state = i % 2 == 0 and 0 or 3, roll = 65 + i } }
+    end
+    s.event("LOOT_HISTORY_UPDATE_ENCOUNTER", 100)
+    SlashCmdList.LOOTLIST("history")
+    equal(#s.historyRows(), 35)
+    assert(s.historyRows()[1].resultText.text:find("Winner35", 1, true))
+    local frames = #s.frames
+    s.event("LOOT_HISTORY_UPDATE_ENCOUNTER", 100)
+    equal(#s.historyRows(), 35); equal(#s.frames, frames)
+    equal(#LootListDB.groupHistory.entries, 35)
 end)
 
 for _, entry in ipairs(tests) do
