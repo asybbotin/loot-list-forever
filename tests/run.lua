@@ -93,7 +93,23 @@ local function setup(options)
     function methods:SetBackdropColor(...) self.background = { ... } end
     function methods:SetTexture(value) self.texture = value end
     function methods:SetAlpha(value) self.alpha = value end
-    function methods:Show() self.shown = true end
+    function methods:GetAlpha() return self.alpha or 1 end
+    function methods:EnableMouse(value) self.mouseEnabled = value end
+    function methods:IsMouseEnabled() return self.mouseEnabled ~= false end
+    function methods:IsProtected() return self.protected == true end
+    function methods:GetChildren() return unpack(self.children) end
+    function methods:HookScript(event, hook)
+        local previous = self.scripts[event]
+        self.scripts[event] = function(self, ...)
+            if previous then previous(self, ...) end
+            hook(self, ...)
+        end
+    end
+    function methods:Show()
+        local wasShown = self.shown
+        self.shown = true
+        if not wasShown and self.scripts.OnShow then self.scripts.OnShow(self) end
+    end
     function methods:IsShown() return self.shown == true end
     function methods:SetScrollChild(child) self.scrollChild = child end
     function methods:SetVerticalScroll(value) self.verticalScroll = value end
@@ -107,8 +123,9 @@ local function setup(options)
     function methods:UnregisterAllEvents() self.events = {} end
     function methods:StartMoving() self.moving = true end
     local function object(kind, name, parent)
-        local obj = setmetatable({ kind = kind, name = name, parent = parent, scripts = {}, events = {} }, { __index = methods })
+        local obj = setmetatable({ kind = kind, name = name, parent = parent, scripts = {}, events = {}, children = {} }, { __index = methods })
         frames[#frames + 1] = obj
+        if parent then parent.children[#parent.children + 1] = obj end
         return obj
     end
     function methods:CreateTexture() return object("Texture") end
@@ -161,6 +178,22 @@ local function setup(options)
         return rolls[id] and math.max(0, (rolls[id].expires - now) * 1000) or 0
     end
     RollOnLoot = function(id, choice) selections[#selections + 1] = { id, choice } end
+    local combat = options.combat or false
+    InCombatLockdown = function() return combat end
+    local defaultNames = { "GroupLootContainer", "GroupLootFrame1", "GroupLootFrame2",
+        "GroupLootFrame3", "GroupLootFrame4", "GamepadGroupLootRollFrame" }
+    for _, name in ipairs(defaultNames) do _G[name] = nil end
+    local defaultRoll, defaultButton, defaultHiddenButton
+    if options.defaultRoll then
+        defaultRoll = object("Frame", "GroupLootFrame1", UIParent)
+        defaultRoll:SetAlpha(0.6)
+        defaultRoll.protected = options.protectedDefault
+        defaultRoll:Show()
+        defaultButton = object("Button", nil, defaultRoll)
+        defaultHiddenButton = object("Button", nil, defaultRoll)
+        defaultHiddenButton:EnableMouse(false)
+        _G.GroupLootFrame1 = defaultRoll
+    end
     local instance = options.instance
     IsInInstance = function() return instance ~= nil, instance and instance.kind or "none" end
     GetInstanceInfo = function()
@@ -226,6 +259,8 @@ local function setup(options)
     return { addon = addon, event = event, advance = advance, data = data, ready = ready,
         displayed = displayed, rows = rows, frames = frames, rolls = rolls, selections = selections, history = history, sounds = sounds,
         setInstance = function(value) instance = value end,
+        setCombat = function(value) combat = value end,
+        defaultRoll = defaultRoll, defaultButton = defaultButton, defaultHiddenButton = defaultHiddenButton,
         historyRows = function()
             local result = {}
             for _, frame in ipairs(frames) do
@@ -1424,6 +1459,44 @@ test("history renders a long list without duplicating rows on repeated updates",
     s.event("LOOT_HISTORY_UPDATE_ENCOUNTER", 100)
     equal(#s.historyRows(), 35); equal(#s.frames, frames)
     equal(#LootListDB.groupHistory.entries, 35)
+end)
+
+test("enabled group module suppresses default visuals and input without hiding or unregistering", function()
+    local s = setup({ defaultRoll = true })
+    equal(s.defaultRoll:GetAlpha(), 0)
+    assert(s.defaultRoll.shown)
+    assert(not s.defaultRoll:IsMouseEnabled()); assert(not s.defaultButton:IsMouseEnabled())
+    s.defaultRoll:RegisterEvent("CANCEL_LOOT_ROLL")
+    local hides = 0
+    s.defaultRoll:SetScript("OnHide", function() hides = hides + 1 end)
+    s.addon.SetGroupLootEnabled(false)
+    equal(s.defaultRoll:GetAlpha(), 0.6)
+    assert(s.defaultRoll:IsMouseEnabled()); assert(s.defaultButton:IsMouseEnabled())
+    assert(not s.defaultHiddenButton:IsMouseEnabled())
+    assert(s.defaultRoll.events.CANCEL_LOOT_ROLL); equal(hides, 0)
+    s.addon.SetGroupLootEnabled(true)
+    equal(s.defaultRoll:GetAlpha(), 0); equal(hides, 0)
+end)
+
+test("default group suppression catches late frames and defers protected changes in combat", function()
+    local s = setup({ defaultRoll = true, protectedDefault = true, combat = true })
+    equal(s.defaultRoll:GetAlpha(), 0.6)
+    assert(s.defaultButton:IsMouseEnabled())
+    s.setCombat(false); s.event("PLAYER_REGEN_ENABLED")
+    equal(s.defaultRoll:GetAlpha(), 0); assert(not s.defaultButton:IsMouseEnabled())
+    s.setCombat(true); s.addon.SetGroupLootEnabled(false)
+    equal(s.defaultRoll:GetAlpha(), 0)
+    s.setCombat(false); s.event("PLAYER_REGEN_ENABLED")
+    equal(s.defaultRoll:GetAlpha(), 0.6); assert(s.defaultButton:IsMouseEnabled())
+    local late = CreateFrame("Frame", nil, UIParent)
+    late:SetAlpha(0.8)
+    _G.GroupLootFrame2 = late
+    s.addon.SetGroupLootEnabled(true)
+    equal(late:GetAlpha(), 0)
+    local child = CreateFrame("Button", nil, late)
+    assert(child:IsMouseEnabled())
+    s.event("START_LOOT_ROLL", 999, 60000); s.advance(0.01)
+    assert(not child:IsMouseEnabled())
 end)
 
 for _, entry in ipairs(tests) do

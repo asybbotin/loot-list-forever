@@ -33,7 +33,9 @@ link into chat. Type `/lootlist help` for additional commands.
 Open `/lootlist` and use **Enable group loot** to turn this module on or off.
 It is enabled by default, and the choice is saved across sessions. Disabling it
 immediately clears its rows and stops its animations, sounds, and roll handling.
-Blizzard's group-roll window remains available. Re-enabling handles new rolls;
+Enabling the module hides Blizzard's group-roll frames and disables their mouse
+input; disabling it restores their previous appearance and mouse input.
+Re-enabling handles new rolls;
 `/lootlist grouptest` respects this setting.
 
 Items requiring a group roll appear in a separate list to the left of the loot
@@ -54,7 +56,7 @@ at least 10 seconds (or your notification duration, if longer). Drag the **Group
 loot — drag to move** header to reposition this list independently; its position
 is saved between sessions. Drag the **Resize** handle below the list to scale it
 from 65–175%. Its size is saved independently; the initial size matches the loot list.
-Blizzard's roll window and confirmation dialogs remain available.
+Blizzard's confirmation dialogs and item-looting window remain available.
 Only an explicit button click submits a roll; Auto Loot is unchanged.
 
 After `/reload`, run **`/lootlist grouptest`** to show three sample items for
@@ -82,6 +84,15 @@ In-game checks: enable `/console scriptErrors 1`, test the sample command, hover
 tooltips, move/resize the loot list, and test during combat. In a group, verify
 eligible/ineligible choices, selecting through either list, declining and accepting
 bind-on-pickup confirmation, simultaneous rolls, expiry, cancellation, and reload.
+
+Default roll-frame suppression uses alpha and mouse input instead of `Hide()`:
+Blizzard's `GroupLootFrame_OnHide` unregisters cancellation events, so hiding the
+frame would disrupt its bookkeeping. The module observes frame `OnShow` scripts,
+addon loading, world entry and new rolls to cover late-created frames/children.
+It restores captured values when disabled and defers changes to protected frames
+until `PLAYER_REGEN_ENABLED`. Validate enabling/disabling during active rolls,
+mouseover/click-through behavior, confirmation cancellation, combat transitions,
+and restoration of the default frames. Actual in-game validation is pending.
 
 ## Dungeon and raid loot history
 

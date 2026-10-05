@@ -11,6 +11,7 @@ local choices = {
 local RESULT_DURATION, RESULT_GRACE = 10, 5
 local updateHistory
 local timerGeneration = 0
+local defaultRollStates, defaultRollHooks = {}, {}
 
 -- Verified client: /dump GetBuildInfo(): 1.60.1, 70205, Oct 2 2026, 16001.
 -- Reference: Gethe/wow-ui-source forever e3ecc27, LootDocumentation,
@@ -481,8 +482,65 @@ function addon.ShowGroupPreview()
     end
 end
 
+local function canChangeDefaultFrame(frame)
+    return not (InCombatLockdown and InCombatLockdown() and frame.IsProtected and frame:IsProtected())
+end
+
+local function suppressDefaultFrame(frame, isRoot)
+    if not frame or not canChangeDefaultFrame(frame) then return end
+    local saved = defaultRollStates[frame] or {}
+    defaultRollStates[frame] = saved
+    if isRoot and frame.GetAlpha and frame.SetAlpha then
+        if saved.alpha == nil then
+            local alpha = frame:GetAlpha()
+            if number(alpha) then saved.alpha = alpha end
+        end
+        if saved.alpha ~= nil then frame:SetAlpha(0) end
+    end
+    if frame.IsMouseEnabled and frame.EnableMouse then
+        if saved.mouse == nil then
+            local enabled = frame:IsMouseEnabled()
+            if public(enabled) and type(enabled) == "boolean" then saved.mouse = enabled end
+        end
+        if saved.mouse ~= nil then frame:EnableMouse(false) end
+    end
+    if GameTooltip:IsOwned(frame) then GameTooltip:Hide() end
+    if frame.GetChildren then
+        for _, child in ipairs({ frame:GetChildren() }) do suppressDefaultFrame(child, false) end
+    end
+end
+
+function addon.ApplyDefaultGroupRollVisibility()
+    -- Do not Hide these frames: their OnHide handlers unregister roll events.
+    -- Leave Blizzard's event processing and confirmation dialogs intact.
+    local enabled = addon.IsGroupLootEnabled()
+        and GetLootRollItemInfo and GetLootRollItemLink and GetLootRollTimeLeft and RollOnLoot
+    local roots = { "GroupLootContainer", "GroupLootFrame1", "GroupLootFrame2",
+        "GroupLootFrame3", "GroupLootFrame4", "GamepadGroupLootRollFrame" }
+    for _, name in ipairs(roots) do
+        local frame = _G[name]
+        if frame then
+            if not defaultRollHooks[frame] and frame.HookScript and canChangeDefaultFrame(frame) then
+                frame:HookScript("OnShow", function() addon.ApplyDefaultGroupRollVisibility() end)
+                defaultRollHooks[frame] = true
+            end
+            if enabled then suppressDefaultFrame(frame, true) end
+        end
+    end
+    if not enabled then
+        for frame, saved in pairs(defaultRollStates) do
+            if canChangeDefaultFrame(frame) then
+                if saved.alpha ~= nil then frame:SetAlpha(saved.alpha) end
+                if saved.mouse ~= nil then frame:EnableMouse(saved.mouse) end
+                defaultRollStates[frame] = nil
+            end
+        end
+    end
+end
+
 function addon.ApplyGroupLootEnabled()
     if not eventFrame then return end
+    addon.ApplyDefaultGroupRollVisibility()
     eventFrame:UnregisterAllEvents()
     if not addon.IsGroupLootEnabled() then
         timerGeneration = timerGeneration + 1
@@ -578,4 +636,16 @@ function addon.InitializeGroupLoot()
         end
     end)
     addon.ApplyGroupLootEnabled()
+    local defaultFrame = CreateFrame("Frame")
+    for _, event in ipairs({ "ADDON_LOADED", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "START_LOOT_ROLL" }) do
+        defaultFrame:RegisterEvent(event)
+    end
+    defaultFrame:SetScript("OnEvent", function(_, event)
+        if event == "START_LOOT_ROLL" then
+            -- Also catch children created after Blizzard handles this event.
+            C_Timer.After(0, addon.ApplyDefaultGroupRollVisibility)
+        else
+            addon.ApplyDefaultGroupRollVisibility()
+        end
+    end)
 end

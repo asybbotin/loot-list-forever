@@ -15,6 +15,7 @@ and enable **Loot List Forever** on the AddOns screen.
   rarity filters, duration, opacity, and the group-loot toggle.
 - **Move and resize:** drag the list handles. Settings and positions are saved.
 - **Group rolls:** click **Need**, **Greed**, or **Pass** beside an item.
+  Enabling group loot hides Blizzard’s default roll frames.
 - **Run history:** type `/lootlist history` or right-click the minimap button.
   History survives reloads and clears when you leave the dungeon or raid.
 - **Item links:** hover for tooltips; Shift-click to insert a link into chat.
